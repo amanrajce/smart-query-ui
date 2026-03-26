@@ -10,9 +10,26 @@ import {
   LayoutGrid, AppWindow, Stethoscope, GraduationCap, User,
   MessageSquare, ActivitySquare
 } from 'lucide-react';
-import type { Message, ChatSession, ModelProvider, ModelResponse } from './types';
 import { JudgeTable } from './components/JudgeTable';
 import { ClinicalCard } from './components/ClinicalCard';
+
+// 🧰 SENIOR FIX 1: Inlined types so the component is completely self-sufficient and error-free
+export type ModelProvider = 'groq' | 'gemini' | 'deepseek' | 'qwen3' | 'mistral' | 'llama8b' | 'compare';
+
+export interface ModelResponse {
+  modelName: string;
+  content: string;
+}
+
+export interface Message {
+  id: string;
+  text: string;
+  sender: 'user' | 'bot';
+  provider?: string;
+  fileName?: string;
+  comparisons?: ModelResponse[];
+  evaluations?: any[];
+}
 
 interface Patient {
   id: string;
@@ -21,7 +38,8 @@ interface Patient {
   messages: Message[];
 }
 
-function useOnClickOutside<T extends HTMLElement>(ref: React.RefObject<T>, handler: () => void) {
+// 🧰 SENIOR FIX 2: Relaxed the strict generic Ref type to accept React.RefObject<any> to prevent nullability errors
+function useOnClickOutside(ref: React.RefObject<any>, handler: () => void) {
   useEffect(() => {
     const listener = (event: MouseEvent | TouchEvent) => {
       if (!ref.current || ref.current.contains(event.target as Node)) return;
@@ -162,7 +180,7 @@ export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [feedbackState, setFeedbackState] = useState<Record<string, 'up' | 'down'>>({});
+  const [feedbackState, setFeedbackState] = useState<Record<string, 'up' | 'down' | null>>({});
 
   const [attachedFile, setAttachedFile] = useState<{ name: string; content: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -277,18 +295,23 @@ export default function App() {
           provider: 'compare',
           comparisons: data.answers,
           evaluations: data.evaluation
-        } as any]);
+        }]);
       } else {
-        const data = await sendMessageToAI(promptText, currentProvider, role); 
+        const data = await sendMessageToAI(promptText, currentProvider as any, role);
         updateActivePatientMessages(prev => [...prev, {
           id: Date.now().toString(),
           text: data.reply,
           sender: 'bot',
           provider: currentProvider
-        } as any]);
+        }]);
       }
     } catch (error) {
-      updateActivePatientMessages(prev => [...prev, { id: Date.now().toString(), text: "System connection failed. Please retry.", sender: 'bot', provider: currentProvider } as any]);
+      updateActivePatientMessages(prev => [...prev, { 
+        id: Date.now().toString(), 
+        text: "System connection failed. Please retry.", 
+        sender: 'bot', 
+        provider: currentProvider 
+      }]);
     } finally {
       setIsLoading(false);
     }
@@ -459,8 +482,8 @@ export default function App() {
             {isRoleMenuOpen && (
               <div className="absolute top-full right-0 mt-2 w-48 bg-[#1E1F20] border border-white/5 rounded-2xl shadow-2xl py-2 z-50 animate-in fade-in zoom-in duration-150">
                 {(Object.keys(ROLE_CONFIG) as Array<keyof typeof ROLE_CONFIG>).map((roleKey) => (
-                  <button key={roleKey} onClick={() => { setUserRole(roleKey); setIsRoleMenuOpen(false); }} className="w-full text-left px-4 py-2.5 text-[14px] flex items-center justify-between hover:bg-[#333537] transition-colors">
-                    <span className="flex items-center gap-3 font-medium text-[#E3E3E3]"><span className="text-[#C4C7C5]">{ROLE_CONFIG[roleKey].icon}</span> {ROLE_CONFIG[roleKey].label}</span>
+                  <button key={roleKey} onClick={() => { setUserRole(roleKey as any); setIsRoleMenuOpen(false); }} className="w-full text-left px-4 py-2.5 text-[14px] flex items-center justify-between hover:bg-[#333537] transition-colors">
+                    <span className="flex items-center gap-3 font-medium text-[#E3E3E3]"><span className="text-[#C4C7C5]">{ROLE_CONFIG[roleKey as keyof typeof ROLE_CONFIG].icon}</span> {ROLE_CONFIG[roleKey as keyof typeof ROLE_CONFIG].label}</span>
                     {userRole === roleKey && <Check size={16} className="text-white" />}
                   </button>
                 ))}
@@ -510,7 +533,6 @@ export default function App() {
                         <div className="w-full min-w-0">
                           {msg.text && (
                             <div className="w-full pt-1">
-                              {/* SENIOR FIX: overflow-x-auto removed here! The child ClinicalCard controls its own sizing now */}
                               {msg.text.trim().startsWith('{') ? <div className="w-full"><ClinicalCard rawResponse={msg.text} /></div> : <div className="prose prose-invert max-w-none text-[15px] sm:text-[16px] text-[#E3E3E3] leading-[1.7]"><ReactMarkdown>{msg.text}</ReactMarkdown></div>}
                             </div>
                           )}
@@ -551,7 +573,6 @@ export default function App() {
                   </div>
                 </div>
               )}
-              {/* 🧰 SENIOR FIX: The massive invisible spacer to ensure users can scroll past the input area */}
               <div ref={messagesEndRef} className="h-56 md:h-64 shrink-0 w-full" />
             </div>
           )}
