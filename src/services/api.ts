@@ -1,7 +1,8 @@
 import type { ModelProvider, CompareResponse } from '../types/index';
 
-// 🧰 SENIOR FIX: Hardcoded to your live Railway server to bypass Vercel's mixed-content block
-const API_URL = 'https://smart-query-backend-production.up.railway.app/api/chat'; 
+// 🧰 SENIOR FIX: Use environment variables so you never have to hardcode the backend URL again.
+// It will fallback to localhost during local development.
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api/chat'; 
 
 export const sendMessageToAI = async (message: string, provider: ModelProvider, role: string = 'doctor') => {
     try {

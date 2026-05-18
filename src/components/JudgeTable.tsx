@@ -1,5 +1,6 @@
 import React from 'react';
-import type { JudgeEvaluation } from '../types';
+// 🧰 SENIOR FIX: Point explicitly to the index file to resolve the module collision
+import type { JudgeEvaluation } from '../types/index';
 
 interface Props {
   evaluations: JudgeEvaluation[];
