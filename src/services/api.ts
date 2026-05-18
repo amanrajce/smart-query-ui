@@ -1,15 +1,15 @@
 import type { ModelProvider, CompareResponse } from '../types/index';
 
-// 🧰 SENIOR FIX: Use environment variables so you never have to hardcode the backend URL again.
-// It will fallback to localhost during local development.
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api/chat'; 
+// 🧰 SENIOR FIX: Hardcoded the exact Render URL to completely bypass Vercel env variable issues.
+const BASE_URL = 'https://smart-query-backend-6s62.onrender.com';
+const API_URL = `${BASE_URL}/api/chat`;
 
 export const sendMessageToAI = async (message: string, provider: ModelProvider, role: string = 'doctor') => {
     try {
         const response = await fetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message, modelProvider: provider, role }), // Preserved your exact backend payload keys
+            body: JSON.stringify({ message, modelProvider: provider, role }), 
         });
 
         if (!response.ok) {
